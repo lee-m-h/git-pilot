@@ -4,6 +4,9 @@ import { useState, useRef } from 'react';
 import type { Repo } from '@/types';
 import ThemeToggle from './ThemeToggle';
 
+// Electron 환경인지 감지
+const isElectron = typeof window !== 'undefined' && navigator.userAgent.includes('Electron');
+
 interface SidebarProps {
   repos: Repo[];
   selectedId: string | null;
@@ -149,8 +152,8 @@ export default function Sidebar({ repos, selectedId, onSelect, onAdd, onRemove, 
 
   return (
     <aside className="w-64 h-screen bg-[var(--card)] border-r border-[var(--border)] flex flex-col">
-      {/* Header */}
-      <div className="pt-10 pb-4 px-4 border-b border-[var(--border)]">
+      {/* Header - Electron에서는 타이틀바 영역 확보를 위해 pt-10, 웹에서는 pt-4 */}
+      <div className={`${isElectron ? 'pt-10' : 'pt-4'} pb-4 px-4 border-b border-[var(--border)]`}>
         <div className="flex items-center gap-2">
           <svg className="w-6 h-6 text-[var(--primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
