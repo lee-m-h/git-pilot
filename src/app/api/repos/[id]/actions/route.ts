@@ -18,6 +18,7 @@ import {
   deleteBranch,
   deleteRemoteBranch,
   searchCommits,
+  getFileDiff,
 } from '@/lib/git';
 
 export async function POST(
@@ -138,6 +139,14 @@ export async function POST(
         }
         const results = await searchCommits(repo.path, data.query, data.limit || 20);
         return NextResponse.json({ success: true, results });
+      }
+
+      case 'get-file-diff': {
+        if (!data.path?.trim()) {
+          return NextResponse.json({ error: 'File path is required' }, { status: 400 });
+        }
+        const diff = await getFileDiff(repo.path, data.path, data.staged ?? false);
+        return NextResponse.json({ success: true, diff });
       }
 
       default:

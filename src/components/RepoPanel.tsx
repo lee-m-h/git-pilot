@@ -35,6 +35,9 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
   const [commitDiff, setCommitDiff] = useState<{ files: { path: string; additions: number; deletions: number; status: string }[]; diff: string } | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<{ path: string; staged: boolean } | null>(null);
+  const [fileDiff, setFileDiff] = useState<string | null>(null);
+  const [fileDiffLoading, setFileDiffLoading] = useState(false);
 
   const fetchRepo = useCallback(async () => {
     if (!repoId) return;
@@ -119,6 +122,34 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
 
   const deselectAllFiles = () => {
     setSelectedFiles(new Set());
+  };
+
+  const viewFileDiff = async (path: string, staged: boolean) => {
+    if (!repoId) return;
+    
+    setSelectedFile({ path, staged });
+    setFileDiffLoading(true);
+    setFileDiff(null);
+    
+    try {
+      const res = await fetch(`/api/repos/${repoId}/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get-file-diff', path, staged }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch diff');
+      }
+      
+      setFileDiff(data.diff || '(No changes)');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : 'Failed to fetch diff');
+      setSelectedFile(null);
+    } finally {
+      setFileDiffLoading(false);
+    }
   };
 
   const viewCommitDiff = async (hash: string, message: string) => {
@@ -460,6 +491,7 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
                       file={file} 
                       onAction={() => doAction('unstage', { files: [file.path] })}
                       actionLabel="Unstage"
+                      onViewDiff={() => viewFileDiff(file.path, true)}
                     />
                   ))}
                 </ul>
@@ -517,6 +549,7 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
                       onAction={() => doAction('stage', { files: [file.path] })}
                       actionLabel="Stage"
                       onDiscard={() => doAction('discard', { files: [file.path] })}
+                      onViewDiff={() => viewFileDiff(file.path, false)}
                     />
                   ))}
                   {repo.status.untracked.map((path) => (
@@ -671,6 +704,76 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
         />
       )}
 
+      {/* File Diff Modal */}
+      {selectedFile && (
+        <div 
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          onClick={() => setSelectedFile(null)}
+        >
+          <div 
+            className="bg-[var(--card)] rounded-xl w-[900px] max-w-[90vw] max-h-[85vh] flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-[var(--border)] flex items-start justify-between">
+              <div className="flex-1 min-w-0 mr-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedFile.staged 
+                      ? 'bg-[var(--success)]/20 text-[var(--success)]' 
+                      : 'bg-[var(--warning)]/20 text-[var(--warning)]'
+                  }`}>
+                    {selectedFile.staged ? 'Staged' : 'Unstaged'}
+                  </span>
+                </div>
+                <p className="text-sm font-mono truncate">{selectedFile.path}</p>
+              </div>
+              <button
+                onClick={() => setSelectedFile(null)}
+                className="p-1 rounded hover:bg-[var(--card-hover)] transition-colors flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto">
+              {fileDiffLoading ? (
+                <div className="flex-1 flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--primary)] border-t-transparent"></div>
+                </div>
+              ) : fileDiff ? (
+                <pre className="p-4 text-xs font-mono whitespace-pre overflow-x-auto">
+                  {fileDiff.split('\n').map((line, i) => {
+                    let className = '';
+                    if (line.startsWith('+') && !line.startsWith('+++')) {
+                      className = 'bg-[var(--success)]/20 text-[var(--success)]';
+                    } else if (line.startsWith('-') && !line.startsWith('---')) {
+                      className = 'bg-[var(--danger)]/20 text-[var(--danger)]';
+                    } else if (line.startsWith('@@')) {
+                      className = 'text-[var(--primary)] bg-[var(--primary)]/10';
+                    } else if (line.startsWith('diff --git')) {
+                      className = 'text-[var(--muted)] font-bold';
+                    }
+                    return (
+                      <div key={i} className={`${className} px-2 -mx-2`}>
+                        {line || ' '}
+                      </div>
+                    );
+                  })}
+                </pre>
+              ) : (
+                <div className="flex-1 flex items-center justify-center py-12 text-[var(--muted)]">
+                  No changes
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Commit Diff Modal */}
       {selectedCommit && (
         <div 
@@ -775,9 +878,10 @@ interface FileRowProps {
   onAction: () => void;
   actionLabel: string;
   onDiscard?: () => void;
+  onViewDiff?: () => void;
 }
 
-function FileRow({ file, selected, onToggle, onAction, actionLabel, onDiscard }: FileRowProps) {
+function FileRow({ file, selected, onToggle, onAction, actionLabel, onDiscard, onViewDiff }: FileRowProps) {
   const statusColors: Record<string, string> = {
     'M': 'text-[var(--warning)]',
     'A': 'text-[var(--success)]',
@@ -795,12 +899,16 @@ function FileRow({ file, selected, onToggle, onAction, actionLabel, onDiscard }:
   };
 
   return (
-    <li className="px-4 py-2 flex items-center gap-3 hover:bg-[var(--card-hover)] group">
+    <li 
+      className="px-4 py-2 flex items-center gap-3 hover:bg-[var(--card-hover)] group cursor-pointer"
+      onClick={() => onViewDiff?.()}
+    >
       {onToggle && (
         <input
           type="checkbox"
           checked={selected}
           onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
           className="rounded border-[var(--border)]"
         />
       )}
@@ -814,14 +922,14 @@ function FileRow({ file, selected, onToggle, onAction, actionLabel, onDiscard }:
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
         {onDiscard && (
           <button
-            onClick={onDiscard}
+            onClick={(e) => { e.stopPropagation(); onDiscard(); }}
             className="px-2 py-1 text-xs text-[var(--danger)] hover:bg-[var(--danger)]/20 rounded transition-colors"
           >
             Discard
           </button>
         )}
         <button
-          onClick={onAction}
+          onClick={(e) => { e.stopPropagation(); onAction(); }}
           className="px-2 py-1 text-xs text-[var(--primary)] hover:bg-[var(--primary)]/20 rounded transition-colors"
         >
           {actionLabel}
