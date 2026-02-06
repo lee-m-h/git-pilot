@@ -35,6 +35,7 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
   const [commitDiff, setCommitDiff] = useState<{ files: { path: string; additions: number; deletions: number; status: string }[]; diff: string } | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
+  const [graphRefreshTrigger, setGraphRefreshTrigger] = useState(0);
   const [selectedFile, setSelectedFile] = useState<{ path: string; staged: boolean } | null>(null);
   const [fileDiff, setFileDiff] = useState<string | null>(null);
   const [fileDiffLoading, setFileDiffLoading] = useState(false);
@@ -89,6 +90,7 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
       
       showToast('success', result.message);
       await fetchRepo();
+      setGraphRefreshTrigger(prev => prev + 1);
       onRefresh?.();
       
       if (action === 'commit') {
@@ -663,6 +665,7 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
             <CommitGraph 
               repoId={repoId!} 
               onSelectCommit={viewCommitDiff}
+              refreshTrigger={graphRefreshTrigger}
             />
           ) : (
             repo.commits.length > 0 && (

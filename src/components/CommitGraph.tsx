@@ -17,6 +17,7 @@ interface GraphCommit {
 interface CommitGraphProps {
   repoId: string;
   onSelectCommit: (hash: string, message: string) => void;
+  refreshTrigger?: number;
 }
 
 interface SearchResult {
@@ -43,7 +44,7 @@ const COL_WIDTH = 14;
 const NODE_RADIUS = 4;
 const PADDING_LEFT = 8;
 
-export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps) {
+export default function CommitGraph({ repoId, onSelectCommit, refreshTrigger }: CommitGraphProps) {
   const [commits, setCommits] = useState<GraphCommit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
 
   useEffect(() => {
     fetchGraph();
-  }, [fetchGraph]);
+  }, [fetchGraph, refreshTrigger]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
