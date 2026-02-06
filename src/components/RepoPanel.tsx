@@ -827,9 +827,9 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {commitDiff.files.map((file) => (
+                      {commitDiff.files.map((file, idx) => (
                         <span 
-                          key={file.path}
+                          key={`${file.path}-${file.status}-${idx}`}
                           className="text-xs px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)]"
                         >
                           <span className={file.status === 'A' ? 'text-[var(--success)]' : file.status === 'D' ? 'text-[var(--danger)]' : 'text-[var(--warning)]'}>
