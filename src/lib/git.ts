@@ -170,6 +170,27 @@ export async function createBranch(cwd: string, name: string): Promise<void> {
   await git(cwd, `checkout -b ${name}`);
 }
 
+export async function deleteBranch(cwd: string, name: string, force = false): Promise<void> {
+  const flag = force ? '-D' : '-d';
+  await git(cwd, `branch ${flag} ${name}`);
+}
+
+export async function deleteRemoteBranch(cwd: string, name: string): Promise<void> {
+  await git(cwd, `push origin --delete ${name}`);
+}
+
+export async function searchCommits(cwd: string, query: string, limit = 20): Promise<{ hash: string; shortHash: string; message: string; author: string; date: string }[]> {
+  const format = '%H|%h|%s|%an|%ar';
+  const output = await git(cwd, `log --all --grep="${query}" -${limit} --pretty=format:"${format}"`);
+  
+  if (!output.trim()) return [];
+  
+  return output.split('\n').filter(Boolean).map(line => {
+    const [hash, shortHash, message, author, date] = line.split('|');
+    return { hash, shortHash, message, author, date };
+  });
+}
+
 export async function merge(cwd: string, branch: string): Promise<string> {
   return git(cwd, `merge ${branch}`);
 }

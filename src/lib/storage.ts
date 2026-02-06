@@ -56,3 +56,37 @@ export async function getRepoById(id: string): Promise<Repo | undefined> {
   const repos = await getRepos();
   return repos.find(r => r.id === id);
 }
+
+export async function toggleFavorite(id: string): Promise<Repo | undefined> {
+  const repos = await getRepos();
+  const repo = repos.find(r => r.id === id);
+  if (repo) {
+    repo.favorite = !repo.favorite;
+    await saveRepos(repos);
+  }
+  return repo;
+}
+
+export async function reorderRepos(orderedIds: string[]): Promise<void> {
+  const repos = await getRepos();
+  orderedIds.forEach((id, index) => {
+    const repo = repos.find(r => r.id === id);
+    if (repo) {
+      repo.order = index;
+    }
+  });
+  await saveRepos(repos);
+}
+
+export async function getSortedRepos(): Promise<Repo[]> {
+  const repos = await getRepos();
+  return repos.sort((a, b) => {
+    // Favorites first
+    if (a.favorite && !b.favorite) return -1;
+    if (!a.favorite && b.favorite) return 1;
+    // Then by order
+    const orderA = a.order ?? 999;
+    const orderB = b.order ?? 999;
+    return orderA - orderB;
+  });
+}

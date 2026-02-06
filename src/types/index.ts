@@ -3,6 +3,8 @@ export interface Repo {
   name: string;
   path: string;
   addedAt: string;
+  favorite?: boolean;
+  order?: number;
 }
 
 export interface RepoStatus {

@@ -300,26 +300,49 @@ export default function RepoPanel({ repoId, onRefresh }: RepoPanelProps) {
                 )}
 
                 {repo.branches.map((branch) => (
-                  <button
+                  <div
                     key={branch.name}
-                    onClick={() => {
-                      if (!branch.current) {
-                        doAction('checkout', { branch: branch.name });
-                      }
-                      setShowBranchDropdown(false);
-                    }}
                     className={`
-                      w-full px-3 py-2 text-sm text-left hover:bg-[var(--card-hover)] flex items-center justify-between
+                      group w-full px-3 py-2 text-sm text-left hover:bg-[var(--card-hover)] flex items-center justify-between
                       ${branch.current ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : ''}
                     `}
                   >
-                    <span className="truncate">{branch.name}</span>
-                    {branch.current && (
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
+                    <button
+                      className="flex-1 text-left truncate"
+                      onClick={() => {
+                        if (!branch.current) {
+                          doAction('checkout', { branch: branch.name });
+                        }
+                        setShowBranchDropdown(false);
+                      }}
+                    >
+                      {branch.name}
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {branch.current && (
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {!branch.current && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Delete branch "${branch.name}"?`)) {
+                              doAction('delete-branch', { branch: branch.name });
+                              setShowBranchDropdown(false);
+                            }
+                          }}
+                          className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--danger)] hover:text-white transition-all"
+                          title="Delete branch"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

@@ -1,12 +1,32 @@
 import { NextResponse } from 'next/server';
-import { getRepos, addRepo } from '@/lib/storage';
+import { getSortedRepos, addRepo, reorderRepos, toggleFavorite } from '@/lib/storage';
 import { isGitRepo } from '@/lib/git';
 import path from 'path';
 
 export async function GET() {
   try {
-    const repos = await getRepos();
+    const repos = await getSortedRepos();
     return NextResponse.json(repos);
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { action, id, orderedIds } = await request.json();
+    
+    if (action === 'toggle-favorite' && id) {
+      const repo = await toggleFavorite(id);
+      return NextResponse.json(repo);
+    }
+    
+    if (action === 'reorder' && orderedIds) {
+      await reorderRepos(orderedIds);
+      return NextResponse.json({ success: true });
+    }
+    
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }

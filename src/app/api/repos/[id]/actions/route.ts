@@ -15,6 +15,9 @@ import {
   rebase,
   abortMerge,
   abortRebase,
+  deleteBranch,
+  deleteRemoteBranch,
+  searchCommits,
 } from '@/lib/git';
 
 export async function POST(
@@ -111,6 +114,30 @@ export async function POST(
       case 'abort-rebase': {
         await abortRebase(repo.path);
         return NextResponse.json({ success: true, message: 'Rebase aborted' });
+      }
+
+      case 'delete-branch': {
+        if (!data.branch?.trim()) {
+          return NextResponse.json({ error: 'Branch name is required' }, { status: 400 });
+        }
+        await deleteBranch(repo.path, data.branch, data.force);
+        return NextResponse.json({ success: true, message: `Deleted branch ${data.branch}` });
+      }
+
+      case 'delete-remote-branch': {
+        if (!data.branch?.trim()) {
+          return NextResponse.json({ error: 'Branch name is required' }, { status: 400 });
+        }
+        await deleteRemoteBranch(repo.path, data.branch);
+        return NextResponse.json({ success: true, message: `Deleted remote branch ${data.branch}` });
+      }
+
+      case 'search-commits': {
+        if (!data.query?.trim()) {
+          return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
+        }
+        const results = await searchCommits(repo.path, data.query, data.limit || 20);
+        return NextResponse.json({ success: true, results });
       }
 
       default:

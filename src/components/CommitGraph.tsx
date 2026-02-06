@@ -19,6 +19,14 @@ interface CommitGraphProps {
   onSelectCommit: (hash: string, message: string) => void;
 }
 
+interface SearchResult {
+  hash: string;
+  shortHash: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
 const COLORS = [
   '#3b82f6', // blue
   '#22c55e', // green
@@ -39,6 +47,9 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
   const [commits, setCommits] = useState<GraphCommit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -62,6 +73,36 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
   useEffect(() => {
     fetchGraph();
   }, [fetchGraph]);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/repos/${repoId}/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'search-commits', query: searchQuery }),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setSearchResults(data.results);
+      }
+    } catch (e) {
+      console.error('Search failed:', e);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
+  };
 
   // Calculate graph layout
   const { nodePositions, edges, maxLane } = useMemo(() => {
@@ -193,19 +234,77 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
 
   return (
     <div className="bg-[var(--card)] rounded-lg border border-[var(--border)] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
-        <h3 className="font-medium">Commit Graph</h3>
-        <button
-          onClick={fetchGraph}
-          className="p-1 rounded hover:bg-[var(--card-hover)] transition-colors"
-          title="Refresh"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+      <div className="px-4 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-medium">Commit Graph</h3>
+          <button
+            onClick={fetchGraph}
+            className="p-1 rounded hover:bg-[var(--card-hover)] transition-colors"
+            title="Refresh"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Search */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="커밋 검색..."
+              className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded-lg focus:outline-none focus:border-[var(--primary)]"
+            />
+            <svg className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          {searchResults !== null && (
+            <button
+              onClick={clearSearch}
+              className="px-3 py-1.5 text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--card-hover)]"
+            >
+              취소
+            </button>
+          )}
+        </div>
       </div>
       
+      {/* Search Results */}
+      {searchResults !== null ? (
+        <div className="overflow-auto max-h-[500px]">
+          {searching ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-[var(--primary)] border-t-transparent"></div>
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-[var(--muted)]">
+              검색 결과가 없습니다
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {searchResults.map((result) => (
+                <div
+                  key={result.hash}
+                  className="px-4 py-2 hover:bg-[var(--card-hover)] cursor-pointer"
+                  onClick={() => onSelectCommit(result.hash, result.message)}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <code className="text-xs text-[var(--primary)] font-mono">{result.shortHash}</code>
+                    <span className="text-xs text-[var(--muted)]">{result.date}</span>
+                  </div>
+                  <p className="text-sm">{result.message}</p>
+                  <p className="text-xs text-[var(--muted)]">{result.author}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="overflow-auto max-h-[500px]">
         <div className="flex min-w-max">
           {/* Graph SVG */}
@@ -316,6 +415,7 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

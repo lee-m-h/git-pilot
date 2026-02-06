@@ -71,6 +71,36 @@ export default function Home() {
     }
   };
 
+  const handleToggleFavorite = async (id: string) => {
+    try {
+      await fetch('/api/repos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle-favorite', id }),
+      });
+      await fetchRepos();
+    } catch (error) {
+      console.error('Failed to toggle favorite');
+    }
+  };
+
+  const handleReorder = async (orderedIds: string[]) => {
+    // Optimistic update
+    const reordered = orderedIds.map(id => repos.find(r => r.id === id)!).filter(Boolean);
+    setRepos(reordered);
+    
+    try {
+      await fetch('/api/repos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', orderedIds }),
+      });
+    } catch (error) {
+      console.error('Failed to reorder repos');
+      fetchRepos(); // Revert on error
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -87,6 +117,8 @@ export default function Home() {
         onSelect={setSelectedId}
         onAdd={() => setShowPicker(true)}
         onRemove={handleRemoveRepo}
+        onToggleFavorite={handleToggleFavorite}
+        onReorder={handleReorder}
       />
       
       <RepoPanel 
