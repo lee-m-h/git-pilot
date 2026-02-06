@@ -330,20 +330,39 @@ export default function CommitGraph({ repoId, onSelectCommit, refreshTrigger }: 
                   />
                 );
               } else {
-                // S-curve with tighter/sharper bends
-                // Smaller control offset = more angular curve
-                const dy = edge.y2 - edge.y1;
-                const controlOffset = Math.min(Math.abs(dy) * 0.25, ROW_HEIGHT);
+                // 분기/머지 방향에 따라 ㄱ/ㄴ자 형태
+                const cornerRadius = 4;
+                const goingRight = edge.x2 > edge.x1;
                 
-                return (
-                  <path
-                    key={i}
-                    d={`M ${edge.x1} ${edge.y1} C ${edge.x1} ${edge.y1 + controlOffset}, ${edge.x2} ${edge.y2 - controlOffset}, ${edge.x2} ${edge.y2}`}
-                    stroke={edge.color}
-                    strokeWidth={2}
-                    fill="none"
-                  />
-                );
+                if (goingRight) {
+                  // 머지: ㄱ자 - 시작점에서 수평 → 수직
+                  return (
+                    <path
+                      key={i}
+                      d={`M ${edge.x1} ${edge.y1}
+                          L ${edge.x2 - cornerRadius} ${edge.y1}
+                          Q ${edge.x2} ${edge.y1}, ${edge.x2} ${edge.y1 + cornerRadius}
+                          L ${edge.x2} ${edge.y2}`}
+                      stroke={edge.color}
+                      strokeWidth={2}
+                      fill="none"
+                    />
+                  );
+                } else {
+                  // 분기: ㄴ자 - 수직 → 끝점에서 수평
+                  return (
+                    <path
+                      key={i}
+                      d={`M ${edge.x1} ${edge.y1}
+                          L ${edge.x1} ${edge.y2 - cornerRadius}
+                          Q ${edge.x1} ${edge.y2}, ${edge.x1 - cornerRadius} ${edge.y2}
+                          L ${edge.x2} ${edge.y2}`}
+                      stroke={edge.color}
+                      strokeWidth={2}
+                      fill="none"
+                    />
+                  );
+                }
               }
             })}
 
