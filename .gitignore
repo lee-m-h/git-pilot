@@ -46,3 +46,4 @@ data/
 # Build output
 dist/
 .next/
+.idea/
