@@ -1,6 +1,8 @@
 {
   "name": "git-pilot",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Multi-repository Git management dashboard",
+  "author": "FNF",
   "private": true,
   "main": "electron/main.js",
   "scripts": {
@@ -9,8 +11,10 @@
     "start": "next start -p 4003",
     "lint": "eslint",
     "electron:dev": "NODE_ENV=development electron .",
-    "electron:build": "npm run build && npm run electron:pack:mac",
-    "electron:pack:mac": "electron-builder --mac --config electron-builder.json"
+    "electron:build": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:all": "npm run build && electron-builder --mac --win --linux"
   },
   "dependencies": {
     "next": "16.1.6",
