@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Repo } from '@/types';
+import ThemeToggle from './ThemeToggle';
 
 interface SidebarProps {
   repos: Repo[];
@@ -78,11 +79,14 @@ export default function Sidebar({ repos, selectedId, onSelect, onAdd, onRemove }
         )}
       </div>
 
-      {/* Add Button */}
-      <div className="p-3 border-t border-[var(--border)]">
+      {/* Footer */}
+      <div className="p-3 border-t border-[var(--border)] space-y-2">
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
         <button
           onClick={onAdd}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] rounded-lg transition-colors text-sm font-medium"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)] rounded-lg transition-colors text-sm font-medium text-white"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

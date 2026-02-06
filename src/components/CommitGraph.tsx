@@ -230,11 +230,15 @@ export default function CommitGraph({ repoId, onSelectCommit }: CommitGraphProps
                   />
                 );
               } else {
-                // Diagonal or curved line for merges/branches
+                // S-curve with tighter/sharper bends
+                // Smaller control offset = more angular curve
+                const dy = edge.y2 - edge.y1;
+                const controlOffset = Math.min(Math.abs(dy) * 0.25, ROW_HEIGHT);
+                
                 return (
                   <path
                     key={i}
-                    d={`M ${edge.x1} ${edge.y1} C ${edge.x1} ${(edge.y1 + edge.y2) / 2}, ${edge.x2} ${(edge.y1 + edge.y2) / 2}, ${edge.x2} ${edge.y2}`}
+                    d={`M ${edge.x1} ${edge.y1} C ${edge.x1} ${edge.y1 + controlOffset}, ${edge.x2} ${edge.y2 - controlOffset}, ${edge.x2} ${edge.y2}`}
                     stroke={edge.color}
                     strokeWidth={2}
                     fill="none"
